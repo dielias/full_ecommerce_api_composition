@@ -1,0 +1,112 @@
+version: "3.9"
+
+services:
+  db-users:
+    image: postgres:14
+    container_name: ecommerce-db-users
+    environment:
+      POSTGRES_USER: ecommerce_users
+      POSTGRES_PASSWORD: my_password_users
+      POSTGRES_DB: ecommerce_users
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "ecommerce_users"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-products:
+    image: postgres:14
+    container_name: ecommerce-db-products
+    environment:
+      POSTGRES_USER: ecommerce_products
+      POSTGRES_PASSWORD: my_password_products
+      POSTGRES_DB: ecommerce_products
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "ecommerce_products"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-orders:
+    image: postgres:14
+    container_name: ecommerce-db-orders
+    environment:
+      POSTGRES_USER: ecommerce_orders
+      POSTGRES_PASSWORD: my_password_orders
+      POSTGRES_DB: ecommerce_orders
+    networks:
+      - ecommerce-net
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "ecommerce_orders"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-init:
+    build:
+      context: .
+      dockerfile: services/db-init/Dockerfile
+    depends_on:
+      - db-users
+      - db-products
+      - db-orders
+    networks:
+      - ecommerce-net
+
+  users:
+    build:
+      context: .
+      dockerfile: services/users/Dockerfile
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    ports:
+      - "8001:8001"
+    networks:
+      - ecommerce-net
+
+  products:
+    build:
+      context: .
+      dockerfile: services/products/Dockerfile
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    ports:
+      - "8002:8002"
+    networks:
+      - ecommerce-net
+
+  orders:
+    build:
+      context: .
+      dockerfile: services/orders/Dockerfile
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    ports:
+      - "8003:8003"
+    networks:
+      - ecommerce-net
+
+  api-composition:
+    build:
+      context: .
+      dockerfile: services/api-composer/Dockerfile
+    depends_on:
+      - users
+      - products
+      - orders
+    ports:
+      - "8000:8000"
+    networks:
+      - ecommerce-net
+
+networks:
+  ecommerce-net:
+    driver: bridge
+
