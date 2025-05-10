@@ -13,7 +13,6 @@ Este projeto é uma aplicação de ecommerce implementada com **FastAPI**, estru
 │   ├── products            # Microserviço de produtos
 │   ├── orders              # Microserviço de pedidos
 │   └── db-init             # Inicialização dos bancos
-├── shared (versão Shared Database, opcional)
 ├── tests                   # Testes automatizados
 ```
 
@@ -25,7 +24,7 @@ Cada microserviço possui seu próprio banco de dados PostgreSQL e API independe
 
 - Docker
 - Docker Compose
-- Python 3.11+ (para testes locais, opcional)
+- Python 3.12
 
 ### Subir os serviços
 
@@ -96,10 +95,10 @@ pytest
 - **Per Service Database**: Cada microserviço possui seu próprio banco PostgreSQL.
 - **Isolamento total**: Microserviços não compartilham modelos ou banco de dados.
 
-## 📚 Versão alternativa: Shared Database
-
-O projeto também possui uma versão alternativa com um banco de dados único compartilhado. Os arquivos dessa versão estão organizados no diretório `shared/`.
-
 ## 📝 Licença
 
 Este projeto está licenciado sob a licença MIT.
+
+## 🧑‍💻 Autor
+
+Desenvolvido por Dinah (https://github.com/dielias)
