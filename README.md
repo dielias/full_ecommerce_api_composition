@@ -29,7 +29,7 @@ Cada microserviço possui seu próprio banco de dados PostgreSQL e API independe
 ### Subir os serviços
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 Isso inicializa todos os serviços e bancos de dados. A aplicação estará disponível nos seguintes endpoints:
