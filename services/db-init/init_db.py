@@ -44,11 +44,15 @@ def seed_data(engine, db_name):
         if db_name == 'users':
             user = User(name="Admin", email="admin@example.com")
             session.add(user)
+
         elif db_name == 'products':
-            product = Product(name="Produto Teste", price=99)
-            session.add(product)
+            product1 = Product(name="Produto A", price=20.5)
+            product2 = Product(name="Produto B", price=15.0)
+            session.add_all([product1, product2])
+
         elif db_name == 'orders':
-            order = Order(user_id=1, product_id=1)
+            # Criando um pedido com múltiplos produtos (IDs 1 e 2)
+            order = Order(user_id=1, products=[1, 2])
             session.add(order)
 
         session.commit()
@@ -77,4 +81,3 @@ def initialize_databases():
 
 if __name__ == "__main__":
     initialize_databases()
-

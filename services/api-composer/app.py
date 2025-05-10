@@ -48,7 +48,7 @@ async def get_order(order_id: int):
                 product_data = product_response.json()
                 products.append(product_data)
 
-            # Calcula o total
+            # Calcula o total (aqui assume-se que os produtos contêm 'price' e 'quantity' como antes)
             total = sum(p["price"] * p["quantity"] for p in products)
 
             return OrderResponse(
