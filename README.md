@@ -50,27 +50,27 @@ Isso inicializa todos os serviços e bancos de dados. A aplicação estará disp
 
 ### Users
 
-- `GET /users`
-- `GET /users/{user_id}`
-- `POST /users`
-- `PUT /users/{user_id}`
-- `DELETE /users/{user_id}`
+- `GET /users` - List users
+- `GET /users/{user_id}` - Get user by user_id
+- `POST /users` - Create user
+- `PUT /users/{user_id}` - Update user
+- `DELETE /users/{user_id}` - Delete user
 
 ### Products
 
-- `GET /products`
-- `GET /products/{product_id}`
-- `POST /products`
-- `PUT /products/{product_id}`
-- `DELETE /products/{product_id}`
+- `GET /products` - List products
+- `GET /products/{product_id}` - Get product by product_id
+- `POST /products` - Create product
+- `PUT /products/{product_id}` - Update product
+- `DELETE /products/{product_id}` - Delete product
 
 ### Orders
 
-- `GET /orders`
-- `GET /orders/{order_id}`
-- `POST /orders`
-- `PUT /orders/{order_id}`
-- `DELETE /orders/{order_id}`
+- `GET /orders` - List orders
+- `GET /orders/{order_id}` - Get order by order_id
+- `POST /orders` - Create order
+- `PUT /orders/{order_id}` - Update order
+- `DELETE /orders/{order_id}` - Delete oder
 
 ## 🧪 Testes
 
