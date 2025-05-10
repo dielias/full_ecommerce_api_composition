@@ -9,6 +9,7 @@ class Product(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
     price = Column(Float, nullable=False)
+    quantity = Column(Integer, nullable=False, default=0)  # Adicionando o campo 'quantity'
 
     def __repr__(self):
-        return f"<Product(id={self.id}, name={self.name}, price={self.price})>"
+        return f"<Product(id={self.id}, name={self.name}, price={self.price}, quantity={self.quantity})>"
