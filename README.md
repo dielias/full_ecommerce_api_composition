@@ -45,7 +45,8 @@ Isso inicializa todos os serviços e bancos de dados. A aplicação estará disp
 
 ### API Composer
 
-- `GET /composed-orders` → Lista de pedidos com detalhes de usuário e produto.
+- `GET /orders/{id}` → Retorna um pedido completo com dados do usuário e dos produtos.
+- `GET /users/{user_id}/orders` →  Retorna todos os pedidos de um usuário com detalhes dos produtos 
 
 ### Users
 
