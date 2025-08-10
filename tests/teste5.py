@@ -6,6 +6,6 @@ class LatencyTestUser(HttpUser):
 
     @task
     def get_user_by_id(self):
-        user_id = 1  # pode trocar para um ID válido na sua base
+        user_id = 1  
         response = self.client.get(f"/usuarios/{user_id}")
         print(f"Status: {response.status_code}")

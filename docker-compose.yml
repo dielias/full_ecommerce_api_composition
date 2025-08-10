@@ -113,16 +113,14 @@ services:
   locust:
     build:
       context: ./tests
+    volumes:
+      - ./tests/preload_ids.json:/app/preload_ids.json:ro
     depends_on:
       - api-composer
     ports:
       - "8089:8089"
     networks:
       - ecommerce-net
-    container_name: locust
-    volumes:
-      - ./tests:/app/tests    # monta a pasta local tests em /app/tests no container
-    command: locust -f /app/tests/locustfile.py --host=http://api_composer:8000
 
 networks:
   ecommerce-net:

@@ -48,13 +48,20 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     db.refresh(db_order)
     return {"order_id": db_order.id, "user_id": db_order.user_id, "products": db_order.products}
 
+import traceback
+from fastapi.responses import JSONResponse
+
 @app.get("/orders", response_model=List[OrderResponse])
 def list_orders(db: Session = Depends(get_db)):
-    orders = db.execute(select(Order)).scalars().all()
-    return [
-        {"order_id": o.id, "user_id": o.user_id, "products": o.products}
-        for o in orders
-    ]
+    try:
+        orders = db.execute(select(Order)).scalars().all()
+        return [
+            {"order_id": o.id, "user_id": o.user_id, "products": o.products}
+            for o in orders
+        ]
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/orders/{order_id}", response_model=OrderResponse)
 def get_order(order_id: int, db: Session = Depends(get_db)):
