@@ -1,13 +1,51 @@
-import json
 import random
 from locust import HttpUser, task, between
 
-# Carrega IDs pré-carregados
-with open("preload_ids.json") as f:
-    preload_data = json.load(f)
+# URLs base das APIs
+ORDERS_API_URL = "http://localhost:8003"
+USERS_API_URL = "http://localhost:8001"
 
-ORDER_IDS = [order["id"] for order in preload_data.get("orders", [])]
-USER_IDS = [user["id"] for user in preload_data.get("users", [])]
+# Listas de IDs
+ORDER_IDS = []
+USER_IDS = []
+
+def carregar_ids():
+    """Carrega IDs reais direto das APIs"""
+    import requests
+
+    # Buscar todos os pedidos
+    try:
+        resp_orders = requests.get(f"{ORDERS_API_URL}/orders", timeout=5)
+        if resp_orders.status_code == 200:
+            orders_data = resp_orders.json()
+            # Garante que pega order_id certo
+            for o in orders_data:
+                oid = o.get("order_id") or o.get("id")
+                if oid:
+                    ORDER_IDS.append(oid)
+            print(f"[INFO] {len(ORDER_IDS)} pedidos carregados")
+        else:
+            print(f"[ERRO] Falha ao buscar pedidos: {resp_orders.status_code}")
+    except Exception as e:
+        print(f"[EXCEÇÃO] Erro ao buscar pedidos: {e}")
+
+    # Buscar todos os usuários
+    try:
+        resp_users = requests.get(f"{USERS_API_URL}/users", timeout=5)
+        if resp_users.status_code == 200:
+            users_data = resp_users.json()
+            for u in users_data:
+                uid = u.get("id") or u.get("user_id")
+                if uid:
+                    USER_IDS.append(uid)
+            print(f"[INFO] {len(USER_IDS)} usuários carregados")
+        else:
+            print(f"[ERRO] Falha ao buscar usuários: {resp_users.status_code}")
+    except Exception as e:
+        print(f"[EXCEÇÃO] Erro ao buscar usuários: {e}")
+
+# Carrega IDs no início
+carregar_ids()
 
 class EcommerceUser(HttpUser):
     wait_time = between(1, 3)
@@ -29,3 +67,4 @@ class EcommerceUser(HttpUser):
         with self.client.get(f"/users/{user_id}/orders", catch_response=True) as response:
             if response.status_code != 200:
                 response.failure(f"Erro ao buscar pedidos do usuário {user_id}")
+

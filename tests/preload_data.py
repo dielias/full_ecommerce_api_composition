@@ -10,10 +10,11 @@ ORDERS_API_URL = "http://localhost:8003"
 
 faker = Faker()
 
+
 async def delete_old_data(client):
     print("Deletando dados antigos...")
 
-    # Deleta pedidos antigos (se sua API suportar)
+    # Deleta pedidos antigos
     try:
         res_orders = await client.get(f"{ORDERS_API_URL}/orders")
         if res_orders.status_code == 200:
@@ -52,6 +53,7 @@ async def delete_old_data(client):
     except Exception as e:
         print(f"[ERRO] Falha ao deletar usuários antigos: {e}")
 
+
 async def create_user(client, user_number):
     name = faker.name()
     email = faker.unique.email()
@@ -66,6 +68,7 @@ async def create_user(client, user_number):
             print(f"[ERRO] Falha ao criar usuário {name}: {res.status_code} - {res.text}")
     except Exception as e:
         print(f"[EXCEÇÃO] Erro ao criar usuário {name}: {e}")
+
 
 async def create_product(client, product_number):
     name = faker.word().capitalize()
@@ -83,14 +86,16 @@ async def create_product(client, product_number):
     except Exception as e:
         print(f"[EXCEÇÃO] Erro ao criar produto {name}: {e}")
 
+
 async def create_order(client, user_id, product_id):
     quantity = random.randint(1, 5)
     payload = {
         "user_id": user_id,
         "products": [
-            {"product_id": product_id, "quantity": quantity}
+            {"product_id": int(product_id), "quantity": int(quantity)}
         ]
     }
+    print(f"[DEBUG] Criando pedido: {json.dumps(payload)}")  # log do payload
     try:
         res = await client.post(f"{ORDERS_API_URL}/orders", json=payload)
         if res.status_code in (200, 201):
@@ -101,6 +106,7 @@ async def create_order(client, user_id, product_id):
             print(f"[ERRO] Falha ao criar pedido para usuário {user_id} e produto {product_id}: {res.status_code} - {res.text}")
     except Exception as e:
         print(f"[EXCEÇÃO] Erro ao criar pedido para usuário {user_id} e produto {product_id}: {e}")
+
 
 async def main():
     quantidade_usuarios = int(input("Quantidade de usuários (N): "))
@@ -135,13 +141,15 @@ async def main():
 
         order_results = await asyncio.gather(*order_tasks)
 
-        # Salva os IDs criados para usar depois no Locust
         with open("preload_ids.json", "w") as f:
             json.dump({
                 "users": [{"id": u.get("id") or u.get("user_id")} for u in users],
                 "products": [{"id": p.get("product_id") or p.get("id")} for p in products],
                 "orders": [{"id": o.get("order_id") or o.get("id")} for o in order_results if o is not None]
-            }, f)
+            }, f, indent=2)
+
+        print("[OK] Arquivo preload_ids.json gerado.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from pydantic import BaseModel
 from typing import List
+import logging
+import traceback
+from fastapi.responses import JSONResponse
 
 from services.orders.database import SessionLocal, engine
 from services.orders.models import Base, Order
@@ -48,19 +51,26 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     db.refresh(db_order)
     return {"order_id": db_order.id, "user_id": db_order.user_id, "products": db_order.products}
 
-import traceback
-from fastapi.responses import JSONResponse
-
 @app.get("/orders", response_model=List[OrderResponse])
 def list_orders(db: Session = Depends(get_db)):
     try:
         orders = db.execute(select(Order)).scalars().all()
-        return [
-            {"order_id": o.id, "user_id": o.user_id, "products": o.products}
-            for o in orders
-        ]
+        response_data = []
+        for o in orders:
+            products_data = []
+            for p in o.products:
+                if isinstance(p, dict):
+                    products_data.append(p)
+                else:
+                    logging.error(f"Formato inválido em pedido {o.id}: {o.products}")
+            response_data.append({
+                "order_id": o.id,
+                "user_id": o.user_id,
+                "products": products_data
+            })
+        return response_data
     except Exception as e:
-        traceback.print_exc()
+        logging.exception("Erro ao listar pedidos")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/orders/{order_id}", response_model=OrderResponse)
