@@ -126,3 +126,4 @@ networks:
   ecommerce-net:
     driver: bridge
 
+
