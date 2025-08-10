@@ -68,6 +68,7 @@ services:
       - "8001:8001"
     networks:
       - ecommerce-net
+    container_name: users
 
   products:
     build:
@@ -80,6 +81,7 @@ services:
       - "8002:8002"
     networks:
       - ecommerce-net
+    container_name: products
 
   orders:
     build:
@@ -92,11 +94,12 @@ services:
       - "8003:8003"
     networks:
       - ecommerce-net
+    container_name: orders
 
-  api-composition:
+  api-composer:
     build:
       context: .
-      dockerfile: services/api-composer/Dockerfile
+      dockerfile: services/api_composer/Dockerfile
     depends_on:
       - users
       - products
@@ -105,6 +108,18 @@ services:
       - "8000:8000"
     networks:
       - ecommerce-net
+    container_name: api_composer
+
+  locust:
+    build:
+      context: ./stress_tests
+    depends_on:
+      - api-composer
+    ports:
+      - "8089:8089"
+    networks:
+      - ecommerce-net
+    container_name: locust
 
 networks:
   ecommerce-net:

@@ -4,11 +4,11 @@ from sqlalchemy import select
 
 from services.users.database import SessionLocal, engine
 from services.users.models import Base, User
-from services.users.schemas import UserCreate, UserUpdate
+from services.users.schemas import UserCreate, UserUpdate, UserResponse  # Vamos usar um schema de resposta também
 
 app = FastAPI()
 
-# Garante que as tabelas sejam criadas no banco
+# Cria as tabelas no banco de dados, se ainda não existirem
 Base.metadata.create_all(bind=engine)
 
 def get_db():
@@ -18,7 +18,7 @@ def get_db():
     finally:
         db.close()
 
-@app.post("/users")
+@app.post("/users", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = User(name=user.name, email=user.email)
     db.add(db_user)
@@ -26,13 +26,13 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(db_user)
     return db_user
 
-@app.get("/users")
+@app.get("/users", response_model=list[UserResponse])
 def list_users(db: Session = Depends(get_db)):
     stmt = select(User)
     users = db.execute(stmt).scalars().all()
     return users
 
-@app.get("/users/{user_id}")
+@app.get("/users/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if not user:
@@ -48,7 +48,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Usuário deletado com sucesso"}
 
-@app.put("/users/{user_id}")
+@app.put("/users/{user_id}", response_model=UserResponse)
 def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if not user:

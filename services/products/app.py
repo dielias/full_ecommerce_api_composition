@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from typing import List  # Aqui está a correção
+from typing import List
 from services.products.database import SessionLocal, engine
 from services.products.models import Base, Product
 from pydantic import BaseModel
@@ -11,7 +11,6 @@ app = FastAPI()
 # Garante que as tabelas sejam criadas no banco
 Base.metadata.create_all(bind=engine)
 
-# Dependência para obter a sessão com o banco de dados
 def get_db():
     db = SessionLocal()
     try:
@@ -19,7 +18,7 @@ def get_db():
     finally:
         db.close()
 
-# Esquemas Pydantic para entrada e resposta de dados
+# Esquemas Pydantic para entrada de dados
 class ProductCreate(BaseModel):
     name: str
     price: float
@@ -30,7 +29,8 @@ class ProductUpdate(BaseModel):
     price: float
     quantity: int
 
-class ProductResponse(BaseModel):  # Novo modelo de resposta
+# Esquema Pydantic para resposta, com orm_mode ativado
+class ProductResponse(BaseModel):
     product_id: int
     name: str
     price: float
@@ -45,20 +45,38 @@ def create_product(data: ProductCreate, db: Session = Depends(get_db)):
     db.add(product)
     db.commit()
     db.refresh(product)
-    return product
+    return ProductResponse(
+        product_id=product.id,
+        name=product.name,
+        price=product.price,
+        quantity=product.quantity
+    )
 
-@app.get("/products", response_model=List[ProductResponse])  # Corrigido com List importado
+@app.get("/products", response_model=List[ProductResponse])
 def list_products(db: Session = Depends(get_db)):
     stmt = select(Product)
     products = db.execute(stmt).scalars().all()
-    return products
+    return [
+        ProductResponse(
+            product_id=p.id,
+            name=p.name,
+            price=p.price,
+            quantity=p.quantity
+        )
+        for p in products
+    ]
 
 @app.get("/products/{product_id}", response_model=ProductResponse)
 def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
-    return ProductResponse(product_id=product.id, name=product.name, price=product.price, quantity=product.quantity)
+    return ProductResponse(
+        product_id=product.id,
+        name=product.name,
+        price=product.price,
+        quantity=product.quantity
+    )
 
 @app.put("/products/{product_id}", response_model=ProductResponse)
 def update_product(product_id: int, data: ProductUpdate, db: Session = Depends(get_db)):
@@ -71,7 +89,12 @@ def update_product(product_id: int, data: ProductUpdate, db: Session = Depends(g
     product.quantity = data.quantity
     db.commit()
     db.refresh(product)
-    return ProductResponse(product_id=product.id, name=product.name, price=product.price, quantity=product.quantity)
+    return ProductResponse(
+        product_id=product.id,
+        name=product.name,
+        price=product.price,
+        quantity=product.quantity
+    )
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: int, db: Session = Depends(get_db)):
@@ -82,5 +105,6 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.delete(product)
     db.commit()
     return {"message": "Produto deletado com sucesso"}
+
 
 

@@ -1,18 +1,17 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from pydantic import BaseModel
+from typing import List
 
 from services.orders.database import SessionLocal, engine
 from services.orders.models import Base, Order
-from pydantic import BaseModel
-from typing import List
 
 app = FastAPI()
 
 # Cria as tabelas no banco de dados
 Base.metadata.create_all(bind=engine)
 
-# Função para obter a sessão do banco de dados
 def get_db():
     db = SessionLocal()
     try:
@@ -20,23 +19,30 @@ def get_db():
     finally:
         db.close()
 
-# Schemas para entrada e saída de dados
+# Novo esquema para produtos com quantidade
+class ProductQuantity(BaseModel):
+    product_id: int
+    quantity: int
+
+# Schemas para entrada e saída
 class OrderCreate(BaseModel):
     user_id: int
-    products: List[int]  # IDs dos produtos
+    products: List[ProductQuantity]
 
 class OrderUpdate(BaseModel):
     user_id: int
-    products: List[int]
+    products: List[ProductQuantity]
 
 class OrderResponse(BaseModel):
     order_id: int
     user_id: int
-    products: List[int]
+    products: List[ProductQuantity]
 
 @app.post("/orders", response_model=OrderResponse)
 def create_order(order: OrderCreate, db: Session = Depends(get_db)):
-    db_order = Order(user_id=order.user_id, products=order.products)
+    # Converte produtos para lista de dicts para o JSON
+    products_json = [p.dict() for p in order.products]
+    db_order = Order(user_id=order.user_id, products=products_json)
     db.add(db_order)
     db.commit()
     db.refresh(db_order)
@@ -45,7 +51,10 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db)):
 @app.get("/orders", response_model=List[OrderResponse])
 def list_orders(db: Session = Depends(get_db)):
     orders = db.execute(select(Order)).scalars().all()
-    return [{"order_id": o.id, "user_id": o.user_id, "products": o.products} for o in orders]
+    return [
+        {"order_id": o.id, "user_id": o.user_id, "products": o.products}
+        for o in orders
+    ]
 
 @app.get("/orders/{order_id}", response_model=OrderResponse)
 def get_order(order_id: int, db: Session = Depends(get_db)):
@@ -61,7 +70,7 @@ def update_order(order_id: int, order_update: OrderUpdate, db: Session = Depends
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
 
     db_order.user_id = order_update.user_id
-    db_order.products = order_update.products
+    db_order.products = [p.dict() for p in order_update.products]
     db.commit()
     db.refresh(db_order)
     return {"order_id": db_order.id, "user_id": db_order.user_id, "products": db_order.products}
