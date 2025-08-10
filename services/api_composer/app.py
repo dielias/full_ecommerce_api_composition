@@ -43,11 +43,14 @@ async def get_order(order_id: int):
             user_data = user_response.json()
 
             products = []
-            for product_id in order_data['products']:
+            for prod in order_data['products']:
+                product_id = prod['product_id']
+                quantity = prod['quantity']
                 product_response = await client.get(f"{PRODUCTS_SERVICE_URL}/products/{product_id}")
                 if product_response.status_code != 200:
                     raise HTTPException(status_code=product_response.status_code, detail="Product service is not available")
                 product_data = product_response.json()
+                product_data['quantity'] = quantity
                 products.append(product_data)
 
             total = sum(p["price"] * p["quantity"] for p in products)
@@ -73,16 +76,19 @@ async def get_user_orders(user_id: int):
                 raise HTTPException(status_code=orders_response.status_code, detail="Order service is not available")
             orders_data = orders_response.json()
 
-            user_orders = [order for order in orders_data if order["user_id"] == user_id]
+            user_orders = [order for order in orders_data if int(order["user_id"]) == int(user_id)]
 
             detailed_orders = []
             for order in user_orders:
                 products = []
-                for product_id in order['products']:
+                for prod in order['products']:
+                    product_id = prod['product_id']
+                    quantity = prod['quantity']
                     product_response = await client.get(f"{PRODUCTS_SERVICE_URL}/products/{product_id}")
                     if product_response.status_code != 200:
                         raise HTTPException(status_code=product_response.status_code, detail="Product service is not available")
                     product_data = product_response.json()
+                    product_data['quantity'] = quantity
                     products.append(product_data)
 
                 total = sum(p["price"] * p["quantity"] for p in products)
