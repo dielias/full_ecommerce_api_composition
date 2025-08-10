@@ -112,7 +112,7 @@ services:
 
   locust:
     build:
-      context: ./stress_tests
+      context: ./tests
     depends_on:
       - api-composer
     ports:
@@ -120,6 +120,9 @@ services:
     networks:
       - ecommerce-net
     container_name: locust
+    volumes:
+      - ./tests:/app/tests    # monta a pasta local tests em /app/tests no container
+    command: locust -f /app/tests/locustfile.py --host=http://api_composer:8000
 
 networks:
   ecommerce-net:
