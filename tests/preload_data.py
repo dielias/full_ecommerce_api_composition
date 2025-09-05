@@ -1,65 +1,21 @@
 import httpx
 import random
 import asyncio
-from faker import Faker
 import json
+import argparse
+import uuid
 
-USERS_API_URL = "http://localhost:8001"
-PRODUCTS_API_URL = "http://localhost:8002"
-ORDERS_API_URL = "http://localhost:8003"
+# URLs dos microserviços diretamente
+USERS_SERVICE_URL = "http://localhost:8001"
+PRODUCTS_SERVICE_URL = "http://localhost:8002"
+ORDERS_SERVICE_URL = "http://localhost:8003"
 
-faker = Faker()
-
-
-async def delete_old_data(client):
-    print("Deletando dados antigos...")
-
-    # Deleta pedidos antigos
-    try:
-        res_orders = await client.get(f"{ORDERS_API_URL}/orders")
-        if res_orders.status_code == 200:
-            orders = res_orders.json()
-            for order in orders:
-                order_id = order.get("order_id") or order.get("id")
-                res_del = await client.delete(f"{ORDERS_API_URL}/orders/{order_id}")
-                if res_del.status_code == 200:
-                    print(f"[OK] Pedido {order_id} deletado")
-    except Exception as e:
-        print(f"[ERRO] Falha ao deletar pedidos antigos: {e}")
-
-    # Deleta produtos antigos
-    try:
-        res_products = await client.get(f"{PRODUCTS_API_URL}/products")
-        if res_products.status_code == 200:
-            products = res_products.json()
-            for product in products:
-                product_id = product.get("product_id") or product.get("id")
-                res_del = await client.delete(f"{PRODUCTS_API_URL}/products/{product_id}")
-                if res_del.status_code == 200:
-                    print(f"[OK] Produto {product_id} deletado")
-    except Exception as e:
-        print(f"[ERRO] Falha ao deletar produtos antigos: {e}")
-
-    # Deleta usuários antigos
-    try:
-        res_users = await client.get(f"{USERS_API_URL}/users")
-        if res_users.status_code == 200:
-            users = res_users.json()
-            for user in users:
-                user_id = user.get("id") or user.get("user_id")
-                res_del = await client.delete(f"{USERS_API_URL}/users/{user_id}")
-                if res_del.status_code == 200:
-                    print(f"[OK] Usuário {user_id} deletado")
-    except Exception as e:
-        print(f"[ERRO] Falha ao deletar usuários antigos: {e}")
-
-
-async def create_user(client, user_number):
-    name = faker.name()
-    email = faker.unique.email()
+async def create_user(client):
+    name = f"User{random.randint(1, 100000)}"
+    email = f"user_{uuid.uuid4()}@test.com"
     payload = {"name": name, "email": email}
     try:
-        res = await client.post(f"{USERS_API_URL}/users", json=payload)
+        res = await client.post(f"{USERS_SERVICE_URL}/users", json=payload)
         if res.status_code in (200, 201):
             data = res.json()
             print(f"[OK] Usuário criado: {data}")
@@ -69,14 +25,13 @@ async def create_user(client, user_number):
     except Exception as e:
         print(f"[EXCEÇÃO] Erro ao criar usuário {name}: {e}")
 
-
-async def create_product(client, product_number):
-    name = faker.word().capitalize()
+async def create_product(client):
+    name = f"Product{random.randint(1, 100000)}"
     price = round(random.uniform(10, 100), 2)
     quantity = random.randint(1, 20)
     payload = {"name": name, "price": price, "quantity": quantity}
     try:
-        res = await client.post(f"{PRODUCTS_API_URL}/products", json=payload)
+        res = await client.post(f"{PRODUCTS_SERVICE_URL}/products", json=payload)
         if res.status_code in (200, 201):
             data = res.json()
             print(f"[OK] Produto criado: {data}")
@@ -86,18 +41,14 @@ async def create_product(client, product_number):
     except Exception as e:
         print(f"[EXCEÇÃO] Erro ao criar produto {name}: {e}")
 
-
 async def create_order(client, user_id, product_id):
     quantity = random.randint(1, 5)
     payload = {
-        "user_id": user_id,
-        "products": [
-            {"product_id": int(product_id), "quantity": int(quantity)}
-        ]
+        "user_id": int(user_id),
+        "products": [{"product_id": int(product_id), "quantity": quantity}]
     }
-    print(f"[DEBUG] Criando pedido: {json.dumps(payload)}")  # log do payload
     try:
-        res = await client.post(f"{ORDERS_API_URL}/orders", json=payload)
+        res = await client.post(f"{ORDERS_SERVICE_URL}/orders", json=payload)
         if res.status_code in (200, 201):
             data = res.json()
             print(f"[OK] Pedido criado: {data}")
@@ -107,49 +58,54 @@ async def create_order(client, user_id, product_id):
     except Exception as e:
         print(f"[EXCEÇÃO] Erro ao criar pedido para usuário {user_id} e produto {product_id}: {e}")
 
-
-async def main():
-    quantidade_usuarios = int(input("Quantidade de usuários (N): "))
-    quantidade_produtos = int(input("Quantidade de produtos (M): "))
-    quantidade_pedidos = int(input("Quantidade de pedidos (K): "))
-
+async def main(num_users, num_products, num_orders):
     async with httpx.AsyncClient(timeout=10.0) as client:
-        await delete_old_data(client)
-
         print("Criando usuários...")
-        user_results = await asyncio.gather(*[create_user(client, i) for i in range(quantidade_usuarios)])
+        users = await asyncio.gather(*[create_user(client) for _ in range(num_users)])
+        users = [u for u in users if u is not None and "id" in u]
+
         print("Criando produtos...")
-        product_results = await asyncio.gather(*[create_product(client, i) for i in range(quantidade_produtos)])
+        products = await asyncio.gather(*[create_product(client) for _ in range(num_products)])
+        products = [p for p in products if p is not None and "product_id" in p]
 
-        users = [u for u in user_results if u is not None and ("id" in u or "user_id" in u)]
-        products = [p for p in product_results if p is not None and ("product_id" in p or "id" in p)]
-
-        if not users:
-            print("[ERRO] Nenhum usuário válido foi criado. Abortando criação de pedidos.")
-            return
-        if not products:
-            print("[ERRO] Nenhum produto válido foi criado. Abortando criação de pedidos.")
+        if not users or not products:
+            print("[ERRO] Nenhum usuário ou produto válido criado. Abortando criação de pedidos.")
             return
 
+        print("Criando pedidos...")
         order_tasks = []
-        for _ in range(quantidade_pedidos):
+        for _ in range(num_orders):
             user = random.choice(users)
             product = random.choice(products)
-            user_id = user.get("id") or user.get("user_id")
-            product_id = product.get("product_id") or product.get("id")
-            order_tasks.append(create_order(client, user_id, product_id))
+            order_tasks.append(create_order(client, user["id"], product["product_id"]))
 
-        order_results = await asyncio.gather(*order_tasks)
+        orders = await asyncio.gather(*order_tasks)
+        orders = [o for o in orders if o is not None and "order_id" in o]
 
+        # Salva IDs em JSON
         with open("preload_ids.json", "w") as f:
             json.dump({
-                "users": [{"id": u.get("id") or u.get("user_id")} for u in users],
-                "products": [{"id": p.get("product_id") or p.get("id")} for p in products],
-                "orders": [{"id": o.get("order_id") or o.get("id")} for o in order_results if o is not None]
+                "users": [{"id": u["id"]} for u in users],
+                "products": [{"id": p["product_id"]} for p in products],
+                "orders": [{"id": o["order_id"]} for o in orders]
             }, f, indent=2)
 
         print("[OK] Arquivo preload_ids.json gerado.")
 
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Pré-carregar dados de teste diretamente nos microserviços.")
+    parser.add_argument("--users", type=int, default=10, help="Número de usuários a criar")
+    parser.add_argument("--products", type=int, default=10, help="Número de produtos a criar")
+    parser.add_argument("--orders", type=int, default=20, help="Número de pedidos a criar")
+    args = parser.parse_args()
+
+    asyncio.run(main(args.users, args.products, args.orders))
+
+
+
+
+
+
+
+
+

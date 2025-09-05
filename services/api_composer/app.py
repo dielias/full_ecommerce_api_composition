@@ -105,3 +105,11 @@ async def get_user_orders(user_id: int):
             raise HTTPException(status_code=500, detail=f"Service connection error: {str(e)}")
         except KeyError as e:
             raise HTTPException(status_code=500, detail=f"Missing expected data: {str(e)}")
+
+
+
+
+
+
+
+

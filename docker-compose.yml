@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+  # Banco de dados para os usuários
   db-users:
     image: postgres:14
     container_name: ecommerce-db-users
@@ -16,6 +17,18 @@ services:
       timeout: 5s
       retries: 5
 
+  # Proxy para o banco de usuários
+  toxiproxy-users:
+    image: ghcr.io/shopify/toxiproxy:2.7.0
+    container_name: toxiproxy-users
+    depends_on:
+      - db-users
+    networks:
+      - ecommerce-net
+    ports:
+      - "8475:8474" # Porta para a API de administração do proxy de usuários
+
+  # Banco de dados para os produtos
   db-products:
     image: postgres:14
     container_name: ecommerce-db-products
@@ -31,6 +44,18 @@ services:
       timeout: 5s
       retries: 5
 
+  # Proxy para o banco de produtos
+  toxiproxy-products:
+    image: ghcr.io/shopify/toxiproxy:2.7.0
+    container_name: toxiproxy-products
+    depends_on:
+      - db-products
+    networks:
+      - ecommerce-net
+    ports:
+      - "8476:8474" # Porta para a API de administração do proxy de produtos
+
+  # Banco de dados para os pedidos
   db-orders:
     image: postgres:14
     container_name: ecommerce-db-orders
@@ -46,17 +71,37 @@ services:
       timeout: 5s
       retries: 5
 
+  # Proxy para o banco de pedidos
+  toxiproxy-orders:
+    image: ghcr.io/shopify/toxiproxy:2.7.0
+    container_name: toxiproxy-orders
+    depends_on:
+      - db-orders
+    networks:
+      - ecommerce-net
+    ports:
+      - "8477:8474" # Porta para a API de administração do proxy de pedidos
+
+  # Inicialização dos bancos (criação de tabelas e seed)
   db-init:
     build:
       context: .
       dockerfile: services/db-init/Dockerfile
     depends_on:
-      - db-users
-      - db-products
-      - db-orders
+      db-users:
+        condition: service_healthy
+      db-products:
+        condition: service_healthy
+      db-orders:
+        condition: service_healthy
+    environment:
+      DB_USERS_URL: "postgresql+psycopg2://ecommerce_users:my_password_users@db-users:5432/ecommerce_users"
+      DB_PRODUCTS_URL: "postgresql+psycopg2://ecommerce_products:my_password_products@db-products:5432/ecommerce_products"
+      DB_ORDERS_URL: "postgresql+psycopg2://ecommerce_orders:my_password_orders@db-orders:5432/ecommerce_orders"
     networks:
       - ecommerce-net
 
+  # Serviço de usuários
   users:
     build:
       context: .
@@ -64,12 +109,17 @@ services:
     depends_on:
       db-init:
         condition: service_completed_successfully
+      toxiproxy-users:
+        condition: service_started
     ports:
       - "8001:8001"
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://ecommerce_users:my_password_users@toxiproxy-users:5432/ecommerce_users"
     networks:
       - ecommerce-net
     container_name: users
 
+  # Serviço de produtos
   products:
     build:
       context: .
@@ -77,12 +127,17 @@ services:
     depends_on:
       db-init:
         condition: service_completed_successfully
+      toxiproxy-products:
+        condition: service_started
     ports:
       - "8002:8002"
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://ecommerce_products:my_password_products@toxiproxy-products:5432/ecommerce_products"
     networks:
       - ecommerce-net
     container_name: products
 
+  # Serviço de pedidos
   orders:
     build:
       context: .
@@ -90,33 +145,47 @@ services:
     depends_on:
       db-init:
         condition: service_completed_successfully
+      toxiproxy-orders:
+        condition: service_started
     ports:
       - "8003:8003"
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://ecommerce_orders:my_password_orders@toxiproxy-orders:5432/ecommerce_orders"
     networks:
       - ecommerce-net
     container_name: orders
 
+  # Gateway de API (API Composer)
   api-composer:
     build:
       context: .
       dockerfile: services/api_composer/Dockerfile
     depends_on:
-      - users
-      - products
-      - orders
+      users:
+        condition: service_started
+      products:
+        condition: service_started
+      orders:
+        condition: service_started
     ports:
       - "8000:8000"
     networks:
       - ecommerce-net
     container_name: api_composer
+    environment:
+      USERS_SERVICE_URL: "http://users:8001"
+      PRODUCTS_SERVICE_URL: "http://products:8002"
+      ORDERS_SERVICE_URL: "http://orders:8003"
 
+  # Locust para testes de stress
   locust:
     build:
       context: ./tests
     volumes:
       - ./tests/preload_ids.json:/app/preload_ids.json:ro
     depends_on:
-      - api-composer
+      api-composer:
+        condition: service_started
     ports:
       - "8089:8089"
     networks:
