@@ -27,6 +27,7 @@ services:
       - ecommerce-net
     ports:
       - "8475:8474" # Porta para a API de administração do proxy de usuários
+      - "15432:15432" # Porta para o tráfego do serviço de usuários se conectar
 
   # Banco de dados para os produtos
   db-products:
@@ -54,6 +55,7 @@ services:
       - ecommerce-net
     ports:
       - "8476:8474" # Porta para a API de administração do proxy de produtos
+      - "25432:25432" # Porta para o tráfego do serviço de produtos se conectar
 
   # Banco de dados para os pedidos
   db-orders:
@@ -81,6 +83,8 @@ services:
       - ecommerce-net
     ports:
       - "8477:8474" # Porta para a API de administração do proxy de pedidos
+      - "35432:35432" # Porta para o tráfego do serviço de pedidos se conectar
+
 
   # Inicialização dos bancos (criação de tabelas e seed)
   db-init:
@@ -114,7 +118,9 @@ services:
     ports:
       - "8001:8001"
     environment:
-      DATABASE_URL: "postgresql+psycopg2://ecommerce_users:my_password_users@toxiproxy-users:5432/ecommerce_users"
+      #DATABASE_URL: "postgresql+psycopg2://ecommerce_users:my_password_users@toxiproxy-users:5432/ecommerce_users"
+      # URL atualizada para se conectar ao Toxiproxy
+      DATABASE_URL: "postgresql+psycopg2://ecommerce_users:my_password_users@toxiproxy-users:15432/ecommerce_users"
     networks:
       - ecommerce-net
     container_name: users
@@ -132,7 +138,9 @@ services:
     ports:
       - "8002:8002"
     environment:
-      DATABASE_URL: "postgresql+psycopg2://ecommerce_products:my_password_products@toxiproxy-products:5432/ecommerce_products"
+      #DATABASE_URL: "postgresql+psycopg2://ecommerce_products:my_password_products@toxiproxy-products:5432/ecommerce_products"
+      # URL atualizada para se conectar ao Toxiproxy
+      DATABASE_URL: "postgresql+psycopg2://ecommerce_products:my_password_products@toxiproxy-products:25432/ecommerce_products"
     networks:
       - ecommerce-net
     container_name: products
@@ -150,7 +158,9 @@ services:
     ports:
       - "8003:8003"
     environment:
-      DATABASE_URL: "postgresql+psycopg2://ecommerce_orders:my_password_orders@toxiproxy-orders:5432/ecommerce_orders"
+      #DATABASE_URL: "postgresql+psycopg2://ecommerce_orders:my_password_orders@toxiproxy-orders:5432/ecommerce_orders"
+      # URL atualizada para se conectar ao Toxiproxy
+      DATABASE_URL: "postgresql+psycopg2://ecommerce_orders:my_password_orders@toxiproxy-orders:35432/ecommerce_orders"
     networks:
       - ecommerce-net
     container_name: orders
@@ -173,9 +183,14 @@ services:
       - ecommerce-net
     container_name: api_composer
     environment:
+      #Modificação da arquitetura de modo que falha seja simulada entre o Gateway 
+      #e os serviços e não via os bancos de dados dos serviços
       USERS_SERVICE_URL: "http://users:8001"
       PRODUCTS_SERVICE_URL: "http://products:8002"
       ORDERS_SERVICE_URL: "http://orders:8003"
+      #USERS_SERVICE_URL: "http://toxiproxy-users:8001"
+      #PRODUCTS_SERVICE_URL: "http://toxiproxy-products:8002"
+      #ORDERS_SERVICE_URL: "http://toxiproxy-orders:8003"
 
   # Locust para testes de stress
   locust:

@@ -21,7 +21,6 @@ class ApiCompositionUser(HttpUser):
 
     wait_time = between(1, 3)
 
-    # user_id e product_id não são necessários aqui, pois os dados são pré-carregados
     user_id = None
     product_id = None
 
