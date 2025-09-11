@@ -209,5 +209,3 @@ services:
 networks:
   ecommerce-net:
     driver: bridge
-
-
