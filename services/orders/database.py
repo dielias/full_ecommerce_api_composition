@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "postgresql+psycopg2://ecommerce_orders:my_password_orders@ecommerce-db-orders:5432/ecommerce_orders"
+DATABASE_URL = "postgresql+psycopg2://ecommerce_orders:my_password_orders@toxiproxy-orders:35432/ecommerce_orders"
 
 # Cria a engine de conexão com o banco de dados do serviço de pedidos
 engine = create_engine(DATABASE_URL)
